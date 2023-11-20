@@ -427,7 +427,9 @@ func (t *templateService) renderLaunchManifest(vmi *v1.VirtualMachineInstance, i
 		return nil, err
 	}
 
-	compute := t.newContainerSpecRenderer(vmi, volumeRenderer, resources, userId).Render(command)
+	tenantID := vmi.Labels["tenant_id"]
+	serviceID := vmi.Labels["service_id"]
+	compute := t.newContainerSpecRenderer(vmi, volumeRenderer, resources, userId).Render(command, tenantID, serviceID)
 
 	for networkName, resourceName := range networkToResourceMap {
 		varName := fmt.Sprintf("KUBEVIRT_RESOURCE_NAME_%s", networkName)
@@ -489,7 +491,7 @@ func (t *templateService) renderLaunchManifest(vmi *v1.VirtualMachineInstance, i
 		containers = append(
 			containers,
 			newSidecarContainerRenderer(
-				sidecarContainerName(i), vmi, sidecarResources(vmi, t.clusterConfig), requestedHookSidecar, userId).Render(requestedHookSidecar.Command))
+				sidecarContainerName(i), vmi, sidecarResources(vmi, t.clusterConfig), requestedHookSidecar, userId).Render(requestedHookSidecar.Command, tenantID, serviceID))
 	}
 
 	podAnnotations, err := generatePodAnnotations(vmi)
@@ -514,7 +516,7 @@ func (t *templateService) renderLaunchManifest(vmi *v1.VirtualMachineInstance, i
 			t.newInitContainerRenderer(vmi,
 				initContainerVolumeMount(),
 				initContainerResourceRequirementsForVMI(vmi, v1.ContainerDisk, t.clusterConfig),
-				userId).Render(initContainerCommand))
+				userId).Render(initContainerCommand, tenantID, serviceID))
 
 		// this causes containerDisks to be pre-pulled before virt-launcher starts.
 		initContainers = append(initContainers, containerdisk.GenerateInitContainers(vmi, t.clusterConfig, imageIDs, containerDisks, virtBinDir)...)

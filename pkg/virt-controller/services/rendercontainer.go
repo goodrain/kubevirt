@@ -48,7 +48,11 @@ func NewContainerSpecRenderer(containerName string, launcherImg string, imgPullP
 	return computeContainerSpec
 }
 
-func (csr *ContainerSpecRenderer) Render(cmd []string) k8sv1.Container {
+func (csr *ContainerSpecRenderer) Render(cmd []string, tenantID, serviceID string) k8sv1.Container {
+	env := csr.envVars()
+	env = append(env, k8sv1.EnvVar{Name: "SERVICE_ID", Value: serviceID})
+	env = append(env, k8sv1.EnvVar{Name: "TENANT_ID", Value: tenantID})
+	env = append(env, k8sv1.EnvVar{Name: "LOGGER_DRIVER_NAME", Value: "streamlog"})
 	return k8sv1.Container{
 		Name:            csr.name,
 		Image:           csr.launcherImg,
@@ -59,7 +63,7 @@ func (csr *ContainerSpecRenderer) Render(cmd []string) k8sv1.Container {
 		VolumeMounts:    csr.volumeMounts,
 		Resources:       csr.resources,
 		Ports:           csr.ports,
-		Env:             csr.envVars(),
+		Env:             env,
 		LivenessProbe:   csr.liveninessProbe,
 		ReadinessProbe:  csr.readinessProbe,
 		Args:            csr.args,
